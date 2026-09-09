@@ -46,6 +46,9 @@ def save_session():
             'nature': st.session_state.nature,
             'rule': st.session_state.rule,
             'current_session': st.session_state.current_session,
+            'model': st.session_state.model,
+            'model_url': st.session_state.model_url,
+            'api_key': st.session_state.api_key,
             'message': st.session_state.message,
         }
         # 创建一个文件夹
@@ -78,6 +81,9 @@ def load_session(session_time):
                 st.session_state.nick_name = session_data['nick_name']
                 st.session_state.nature = session_data['nature']
                 st.session_state.current_session = session_data['current_session']
+                st.session_state.model = session_data['model']
+                st.session_state.model_url = session_data['model_url']
+                st.session_state.api_key = session_data['api_key']
     except Exception:
         st.error('加载会话失败!')
 
@@ -115,7 +121,15 @@ if 'rule' not in st.session_state:
 # 会话标识
 if 'current_session' not in st.session_state:
     st.session_state.current_session = now_session_time()
-
+# 初始化模型信息
+if 'model' not in st.session_state:
+    st.session_state.model = 'qwen2.5-coder:7b'
+# 模型url
+if 'model_url' not in st.session_state:
+    st.session_state.model_url = 'http://localhost:11434/v1/'
+# api_key
+if 'api_key' not in st.session_state:
+    st.session_state.api_key = 'ollama'
 # 系统提示词
 system_prompt = f"""
 你叫{st.session_state.nick_name}，现在是用户的真实伴侣，请完全代入伴侣角色。：
@@ -139,15 +153,15 @@ if prompt:
 
     # 调用AI大模型
     client = OpenAI(
-        base_url='http://localhost:11434/v1/',
-        api_key='ollama',  # required but ignored
+        base_url=st.session_state.model_url,
+        api_key=st.session_state.api_key,
     )
     chat_completion = client.chat.completions.create(
         messages=[
             {'role': 'system', 'content': system_prompt},
             *st.session_state.message
         ],
-        model='qwen2.5-coder:7b',
+        model=st.session_state.model,
         stream=True,
     )
 
@@ -167,7 +181,7 @@ save_session()
 
 # 左侧侧边栏
 with st.sidebar:  # with streamlit中的上下文管理器,只要在with语句块中,所有组件都会被渲染到侧边栏中
-    st.header('AI控制面板')
+    st.header('AI控制面板',text_alignment='center')
     if st.button('新建会话', width='stretch', icon='✏️'):
         if not st.session_state.message:
             st.warning('当前已是最新会话')
@@ -196,10 +210,12 @@ with st.sidebar:  # with streamlit中的上下文管理器,只要在with语句�
                 if session['time'] == st.session_state.current_session:
                     st.session_state.message = []
                 st.rerun()
+    # 分隔线
+    st.divider()
     # 伴侣信息
     st.header('伴侣信息')
     # 昵称输入框
-    nick_name = st.text_input('昵称', value=st.session_state.nick_name)
+    nick_name = st.text_input('昵称', value=st.session_state.nick_name,)
     if nick_name:
         st.session_state.nick_name = nick_name
     # 性格输入框
@@ -210,4 +226,17 @@ with st.sidebar:  # with streamlit中的上下文管理器,只要在with语句�
     rule = st.text_area('规则', value=st.session_state.rule)
     if rule:
         st.session_state.rule = rule
-    #
+    # 分隔线
+    st.divider()
+    # 模型选择
+    model = st.text_input('模型', value=st.session_state.model)
+    if model:
+        st.session_state.model = model
+    # 模型url
+    model_url = st.text_input('模型url', value=st.session_state.model_url)
+    if model_url:
+        st.session_state.model_url = model_url
+    # api_key
+    api_key = st.text_input('api_key', value=st.session_state.api_key,type='password')
+    if api_key:
+        st.session_state.api_key = api_key
